@@ -1,140 +1,121 @@
-# ⚡ Hızlı Okuma Web (Speed Reading Platform)
+<div align="center">
 
-<p align="center">
-  <img src="public/favicon.ico" alt="Hızlı Okuma Logo" width="80" height="80" />
-</p>
+  <img src="public/logo.svg" alt="Hızlı Okuma Logo" width="100" height="100" />
 
-<p align="center">
-  <strong>Bilimsel RSVP (Rapid Serial Visual Presentation), Spritz ORP Odaklama Algoritması, Biyonik Okuma ve Göz Egzersizleri ile Yeni Nesil Açık Kaynak Hızlı Okuma Platformu.</strong>
-</p>
+  # ⚡ Hızlı Okuma Web (Rapid Focus)
+  
+  **Bilimsel RSVP & Spritz ORP Odak Algoritması, Biyonik Okuma, 5x5 Schulte Periferik Tablosu ve Sakkadik Göz Jimnastiği Platformu**
 
-<p align="center">
-  <a href="https://nextjs.org"><img src="https://img.shields.io/badge/Next.js-16.0-black?style=flat-square&logo=next.js" alt="Next.js" /></a>
-  <a href="https://react.dev"><img src="https://img.shields.io/badge/React-19.0-61DAFB?style=flat-square&logo=react" alt="React" /></a>
-  <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript" alt="TypeScript" /></a>
-  <a href="https://tailwindcss.com"><img src="https://img.shields.io/badge/Tailwind_CSS-v4.0-38B2AC?style=flat-square&logo=tailwind-css" alt="Tailwind CSS" /></a>
-  <a href="https://github.com/resulaykan/hizli-okuma-web/blob/main/LICENSE"><img src="https://img.shields.io/badge/Lisans-MIT-green?style=flat-square" alt="License" /></a>
-</p>
+  [![Next.js](https://img.shields.io/badge/Next.js-16.0-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
+  [![React](https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react)](https://react.dev)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org)
+  [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4.0-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com)
+  [![License: MIT](https://img.shields.io/badge/Lisans-MIT-emerald?style=for-the-badge)](LICENSE)
+  [![Live Demo](https://img.shields.io/badge/Canlı_Demo-Vercel-6366f1?style=for-the-badge&logo=vercel)](https://hizli-oku-ebon.vercel.app)
+
+</div>
 
 ---
 
 ## 🌟 Öne Çıkan Özellikler
 
-### 1. 🧠 Spritz ORP (Optimal Recognition Point) ve Bilimsel RSVP Motoru
-- **Sabit Odak Çizgisi**: Kelimelerin tam tanıma noktası (%25-35 aralığındaki kritik harf) kırmızı/vurgulu renkle işaretlenir ve ekranın merkezindeki sabit odak çizgisine kilitlenir. Gözün satırlar arasında gezinme ihtiyacını ortadan kaldırır.
-- **Akıllı Noktalama ve Dinamik Pacing**: Nokta, soru işareti ve ünlemde (+%70), virgülde (+%35) otomatik ek bekleme süresi tanıyarak beynin metni anlamlandırma oranını maksimize eder.
-- **Kademeli Hızlanma Modu (Auto-Accelerate)**: Okuma devam ederken her 30 saniyede bir hızı otomatik olarak +15 WPM artırarak beynin okuma sınırlarını genişletir.
-- **Kelime Bloklama**: 1x (tek kelime), 2x (ikili kelime) ve 3x (üçlü kelime) blok okuma seçenekleri.
+### 1. 🧠 Spritz ORP (Optimal Recognition Point) ve RSVP Motoru
+- **Sabit Odak Çizgisi**: Her kelimenin optik tanıma noktası (%25-35 aralığındaki harf) özel renk vurgusu ile ekran merkezindeki çentiklere kilitlenir. Gözün satırlar arasında lüzumsuz sıçrama ihtiyacını tamamen ortadan kaldırır.
+- **Akıllı Noktalama Gecikmesi**: Nokta, soru işareti ve ünlemde (+%70), virgülde (+%35) dinamik bekleme süreleri tanıyarak beynin kavrama oranını maksimize eder.
+- **Canlı Cümle Bağlamı (Context Breadcrumb)**: Okunan kelimenin içinde bulunduğu cümleyi alt satırda canlı olarak takip etme imkanı.
+- **Kademeli Hızlanma Modu (Auto-Accelerate)**: Her 30 saniyede bir hızı otomatik +15 WPM artıran adaptif antrenman modu.
+- **Kelime Bloklama**: 1x (tek kelime), 2x (ikili kelime) ve 3x (üçlü kelime) bloklama seçenekleri.
 
 ### 2. 📖 Biyonik ve Kılavuzlu Akış Modu (Guided Reading)
-- **Bionic Reading**: Kelimelerin ilk harfleri kalınlaştırılarak gözün satırları atlayarak daha hızlı kavraması sağlanır.
-- **Kılavuzlu Otomatik Kaydırma**: Ayarlanan WPM hızında aktif kelimeyi/satırı dinamik olarak vurgular ve sayfayı yumuşak bir şekilde aşağı kaydırır.
+- **Bionic Reading**: Kelimelerin ilk harfleri kalınlaştırılarak beynin kelimeyi fotoğrafik olarak tamamlaması sağlanır.
+- **Akıllı Kılavuz Akışı**: Ayarlanan WPM hızında aktif kelimeyi takip eden ve sayfayı yumuşakça kaydıran akış sistemi.
 - **İnteraktif Atlama**: Metindeki herhangi bir kelimeye tıklayarak okuma odağını doğrudan o noktaya taşıma.
 
-### 3. 🎯 5x5 Schulte Tablosu (Periferik Görüş & Dikkat Egzersizi)
-- Geniş görme açısını geliştirmek için rastgele dağıtılmış 1-25 sayı tablosu.
+### 3. 🎯 5x5 Schulte Tablosu (Periferik Görüş Egzersizi)
+- Geniş görme açısını ve çevresel farkındalığı artırmak için rastgele dağıtılmış 1-25 sayı matrisi.
 - Merkezdeki kırmızı noktaya odaklanarak çevresel görüşle sayıları bulma antrenmanı.
-- Canlı kronometre, hata geri bildirimi ve en iyi derece takibi.
+- Canlı milisaniye kronometresi, hatalı tıklama titreşimi, konfeti kutlaması ve rekor kaydı.
 
 ### 4. 👁️ Sakkadik Göz Takip Egzersizleri
-- Göz kaslarını esnetmek ve sıçrama hassasiyetini artırmak için 4 farklı egzersiz rotası:
-  - **Yatay Takip**: Sol-sağ satır sıçramalarını hızlandırır.
-  - **Dikey Takip**: Sütun ve sayfa tarama refleksini güçlendirir.
-  - **Sonsuzluk (8 Formu)**: Tüm göz kaslarını koordineli çalıştırır.
-  - **Çevresel Genişleme**: Merkezden dışa genişleyen dairesel takip.
+- Göz kaslarını esnetmek ve sıçrama hızını artırmak için 4 farklı 60 FPS Canvas egzersizi:
+  - **Yatay Takip**: Satır atlama hızını artırır.
+  - **Dikey Takip**: Sayfa ve sütun tarama refleksini güçlendirir.
+  - **Sonsuzluk (♾️ Formu)**: Tüm göz kaslarını koordineli çalıştırır.
+  - **Çevresel Genişleme**: Görüş açısını merkezden dışarıya genişletir.
 
 ### 5. 📚 Zengin Metin Kütüphanesi & Dosya Yükleme
-- **Seçkin Eserler**: Atatürk'ün Gençliğe Hitabesi, Sait Faik Abasıyanık (Semaver), Antoine de Saint-Exupéry (Küçük Prens), Franz Kafka (Dönüşüm), Sabahattin Ali (Kürk Mantolu Madonna), Yapay Zeka & Gelecek makaleleri ve Hızlı Okuma Rehberi.
-- **Dosya Desteği**: `.txt` ve `.md` formatındaki dosyaları sürükle-bırak yöntemiyle anında içe aktarma.
-- **Pano Entegrasyonu**: Panodaki metinleri tek tıkla yapıştırma.
+- **Seçkin Eserler (17 Eser)**: Atatürk'ün Gençliğe Hitabesi, Nutuk, Çanakkale Destanı, Sait Faik Abasıyanık (Semaver, Son Kuşlar), Sabahattin Ali (Kürk Mantolu Madonna, İçimizdeki Şeytan), Ahmet Hamdi Tanpınar (Saatleri Ayarlama Enstitüsü), Küçük Prens, Franz Kafka (Dönüşüm), Stefan Zweig (Satranç), George Orwell (1984), Carl Sagan (Soluk Mavi Nokta), Yapay Zeka ve Bilişsel Sinirbilim yazıları.
+- **Dosya Desteği**: `.txt` ve `.md` dosyalarını sürükle-bırak yöntemiyle içe aktarma.
+- **Pano Entegrasyonu**: Panodan tek tıkla yapıştırma.
 
-### 6. 📊 İstatistikler, Seri Takibi ve Kutlama
-- Okunan toplam kelime sayısı, toplam geçirilen süre, en yüksek WPM, ortalama WPM ve günlük seri (streak) takibi.
-- Metin tamamlandığında özel konfeti efekti 🎉 ve okuma karnesi.
-
-### 7. 🎨 Ultra Modern Temalar & Tipografi
-- **Temalar**: Koyu Gece (Dark), Aydınlık (Light), Sepya Kitap (Sepia), AMOLED Saf Siyah (OLED), Siber Gece (Cyber) ve Kişiselleştirilebilir Özel Renk Paleti.
+### 6. 🎨 Çoklu Stüdyo Temaları & Tipografi
+- **Temalar**: Koyu Gece (Dark), Aydınlık (Light), Sepya Kitap (Sepia), Saf AMOLED (OLED), Siber Gece (Cyber) ve Özel Renk Paleti Düzenleyici.
 - **Yazı Tipleri**:
-  - `Lexend`: Hızlı okuma ve disleksi için özel olarak tasarlanmış tipografi.
+  - `Lexend`: Hızlı okuma ve görsel odaklanma için özel tasarlanmış tipografi.
   - `Inter`: Modern ve temiz sans-serif.
-  - `Merriweather`: Klasik kitap tipi serif.
-  - `JetBrains Mono`: Sabit genişlikli font.
-- **Akustik Metronom**: Web Audio API ile pürüzsüz ve rahatsız etmeyen ahşap tıkırtı ses efekti.
-
-### 8. 📱 %100 Mobil Uyumlu (Mobile Responsive)
-- Akıllı telefonlarda tek başparmakla kolay kullanım sağlayan alt gezinti çubuğu.
-- Dokunarak başlatma/durdurma ve hareket kontrolleri.
-- iOS safe-area ve modern viewport optimizasyonları.
+  - `Merriweather`: Klasik edebi serif.
+  - `JetBrains Mono`: Sabit genişlikli teknik font.
 
 ---
 
 ## ⌨️ Klavye Kısayolları
 
-| Kısayol Tuşu | Açıklama |
-| :--- | :--- |
-| <kbd>Space</kbd> | Okumayı Başlat / Duraklat |
-| <kbd>←</kbd> (Sol Ok) | 10 Kelime Geri Sar |
-| <kbd>→</kbd> (Sağ Ok) | 10 Kelime İleri Sar |
-| <kbd>↑</kbd> (Yukarı Ok) | Okuma Hızını +25 WPM Artır |
-| <kbd>↓</kbd> (Aşağı Ok) | Okuma Hızını -25 WPM Azalt |
-| <kbd>R</kbd> | Metni Başa Sar / Sıfırla |
-| <kbd>F</kbd> | Tam Ekran Modunu Aç / Kapat |
-| <kbd>M</kbd> | Ses Efektini Aç / Kapat |
-| <kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd> | Kelime Blok Boyutunu Değiştir (1x, 2x, 3x) |
-| <kbd>?</kbd> veya <kbd>Ctrl+K</kbd> | Klavye Kısayolları Rehberini Aç |
-| <kbd>Esc</kbd> | Açık Pencereleri / Tam Ekranı Kapat |
+| Kısayol Tuşu | Görev / Fonksiyon |
+|---|---|
+| <kbd>Space</kbd> | Başlat / Duraklat (Play / Pause) |
+| <kbd>←</kbd> / <kbd>J</kbd> | 10 Kelime Geri Sar |
+| <kbd>→</kbd> / <kbd>L</kbd> | 10 Kelime İleri Sar |
+| <kbd>↑</kbd> | Okuma Hızını Artır (+25 WPM) |
+| <kbd>↓</kbd> | Okuma Hızını Azalt (-25 WPM) |
+| <kbd>R</kbd> | Başa Sar / Sıfırla |
+| <kbd>F</kbd> | Tam Ekran Modu (Aç / Kapat) |
+| <kbd>M</kbd> | Metronom Sesini Aç / Kapat |
+| <kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd> | Kelime Blok Boyutu (1x, 2x, 3x) |
+| <kbd>?</kbd> | Kısayol Yardım Menüsünü Aç |
+| <kbd>Esc</kbd> | Modalları ve Tam Ekranı Kapat |
 
 ---
 
-## 🚀 Kurulum ve Yerel Geliştirme
+## 🚀 Kurulum ve Yerel Çalıştırma
 
-Projeyi bilgisayarınızda çalıştırmak için aşağıdaki adımları izleyin:
+Projeyi yerel ortamınızda çalıştırmak için:
 
-### 1. Repoyu Klonlayın
 ```bash
+# Repoyu klonlayın
 git clone https://github.com/resulaykan/hizli-okuma-web.git
+
+# Proje dizinine girin
 cd hizli-okuma-web
-```
 
-### 2. Bağımlılıkları Yükleyin
-```bash
+# Bağımlılıkları yükleyin
 npm install
-```
 
-### 3. Geliştirme Sunucusunu Başlatın
-```bash
+# Geliştirme sunucusunu başlatın
 npm run dev
 ```
 
-Tarayıcınızdan `http://localhost:3000` adresine giderek uygulamayı görüntüleyebilirsiniz.
-
-### 4. Üretim (Production) Derlemesi
-```bash
-npm run build
-npm run start
-```
+Tarayıcınızda [http://localhost:3000](http://localhost:3000) adresini açarak uygulamayı test edebilirsiniz.
 
 ---
 
-## 🏗️ Teknoloji Yığını
+## 🛠️ Teknoloji Yığını (Tech Stack)
 
-- **Framework**: [Next.js 16 (App Router)](https://nextjs.org/)
-- **UI & Bileşenler**: [React 19](https://react.dev/), [Lucide React](https://lucide.dev/), [Heroicons](https://heroicons.com/)
+- **Framework**: [Next.js 16 (App Router & Turbopack)](https://nextjs.org/)
+- **Kütüphane**: [React 19](https://react.dev/)
 - **Stil & Tasarım**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **Ses Motoru**: Web Audio API Synthesizer
-- **Efektler**: Canvas-Confetti
+- **İkon Seti**: [Lucide React](https://lucide.dev/)
+- **Ses Motoru**: Web Audio API (Low-Latency Synthesizer)
+- **Efektler**: Canvas Confetti
 - **Dil**: TypeScript 5
-
----
-
-## 👨‍💻 Geliştirici
-
-- **Resul Aykan**
-- GitHub: [@resulaykan](https://github.com/resulaykan)
-- Web: [hizli-okuma-web](https://github.com/resulaykan/hizli-okuma-web)
 
 ---
 
 ## 📄 Lisans
 
-Bu proje [MIT Lisansı](LICENSE) altında açık kaynak olarak sunulmaktadır.
+Bu proje **[MIT Lisansı](LICENSE)** ile lisanslanmıştır. Açık kaynak kodlu olup özgürce geliştirilebilir ve kullanılabilir.
+
+---
+
+<div align="center">
+  Geliştirici: <strong>Resul Aykan</strong> • <a href="https://github.com/resulaykan">@resulaykan</a>
+</div>
