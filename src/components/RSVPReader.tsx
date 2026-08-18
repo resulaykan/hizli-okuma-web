@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   Play, 
   Pause, 
@@ -14,7 +14,9 @@ import {
   ChevronLeft, 
   ChevronRight,
   TrendingUp,
-  FileText
+  FileText,
+  Minus,
+  Plus
 } from 'lucide-react';
 import { ChunkItem, UserSettings } from '@/types';
 import { splitIntoChunks, estimateReadingTime } from '@/lib/orp';
@@ -57,7 +59,7 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
 
   const totalChunks = chunks.length;
   const currentChunk = chunks[currentIndex] || null;
-  const progressPercent = totalChunks > 0 ? (currentIndex / totalChunks) * 100 : 0;
+  const progressPercent = totalChunks > 0 ? ((currentIndex + 1) / totalChunks) * 100 : 0;
 
   const totalWords = useMemo(() => {
     return text.trim().split(/\s+/).filter(w => w.length > 0).length;
@@ -69,12 +71,12 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
     return Math.min(totalWords, remainingChunks * settings.chunkSize);
   }, [totalChunks, currentIndex, totalWords, settings.chunkSize]);
 
-  // ORP focal colors map
+  // ORP focal color styling
   const orpColorClass = useMemo(() => {
     switch (settings.orpColor) {
       case 'red': return 'text-red-500 dark:text-red-400';
       case 'indigo': return 'text-indigo-600 dark:text-indigo-400';
-      case 'emerald': return 'text-emerald-500 dark:text-emerald-400';
+      case 'emerald': return 'text-emerald-600 dark:text-emerald-400';
       case 'amber': return 'text-amber-500 dark:text-amber-400';
       case 'cyan': return 'text-cyan-500 dark:text-cyan-400';
       case 'custom': return '';
@@ -82,7 +84,7 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
     }
   }, [settings.orpColor]);
 
-  // Handle countdown cleanly
+  // Handle countdown
   useEffect(() => {
     let cdTimer: NodeJS.Timeout;
     if (countdown !== null && countdown > 0) {
@@ -153,25 +155,8 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
     onWpmChange
   ]);
 
-  // Fullscreen change listener
-  useEffect(() => {
-    const handleFsChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener('fullscreenchange', handleFsChange);
-    return () => document.removeEventListener('fullscreenchange', handleFsChange);
-  }, []);
-
-  const toggleFullscreen = () => {
-    if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen().catch(() => {});
-    }
-  };
-
-  const togglePlay = () => {
+  // Play / Pause toggle
+  const togglePlay = useCallback(() => {
     if (totalChunks === 0) return;
 
     if (isPlaying || countdown !== null) {
@@ -188,21 +173,69 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
       }
       setCountdown(3);
     }
-  };
+  }, [totalChunks, isPlaying, countdown, currentIndex]);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     setIsPlaying(false);
     setCountdown(null);
     setCurrentIndex(0);
     setSessionElapsedSeconds(0);
     sessionStartTimeRef.current = null;
     autoAccelCounterRef.current = 0;
-  };
+  }, []);
 
-  const jumpWords = (delta: number) => {
+  const jumpWords = useCallback((delta: number) => {
     const chunkDelta = Math.round(delta / settings.chunkSize);
     setCurrentIndex(prev => Math.max(0, Math.min(totalChunks - 1, prev + chunkDelta)));
-  };
+  }, [settings.chunkSize, totalChunks]);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, []);
+
+  // Keyboard shortcut listener dedicated to RSVP reader
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'j') {
+        e.preventDefault();
+        jumpWords(-10);
+      } else if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        jumpWords(10);
+      } else if (e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        reset();
+      } else if (e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [togglePlay, jumpWords, reset, toggleFullscreen]);
+
+  // Fullscreen change listener
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
 
   // Preset speed buttons
   const speedPresets = [
@@ -213,49 +246,58 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
     { label: '900', value: 900, title: 'Master' },
   ];
 
+  // Theme-based Card Styles
+  const getCardClasses = () => {
+    if (isFullscreen) return 'fixed inset-0 z-50 rounded-none h-screen p-6 md:p-12 justify-center';
+    
+    switch (settings.theme) {
+      case 'light':
+        return 'bg-white border border-slate-200/80 card-shadow-light';
+      case 'sepia':
+        return 'bg-[#fcf7ec] border border-[#e6dbb9] card-shadow-sepia text-[#2e2117]';
+      case 'oled':
+        return 'bg-black border border-white/20 card-shadow-oled text-white';
+      case 'cyber':
+        return 'bg-[#0b1021] border border-cyan-500/20 shadow-2xl text-cyan-50';
+      case 'custom':
+        return 'border border-black/10 dark:border-white/10 shadow-2xl';
+      default: // dark
+        return 'bg-[#0f172a] border border-white/10 card-shadow-dark text-slate-100';
+    }
+  };
+
   return (
     <div 
       ref={containerRef}
-      className={`relative w-full max-w-4xl mx-auto flex flex-col justify-between rounded-3xl transition-all duration-300 ${
-        isFullscreen
-          ? 'fixed inset-0 z-50 rounded-none h-screen p-6 md:p-12 justify-center'
-          : 'border border-black/5 dark:border-white/10 shadow-2xl overflow-hidden'
-      }`}
-      style={{
-        backgroundColor: settings.theme === 'custom' 
-          ? settings.customColors.card 
-          : settings.theme === 'light'
-          ? '#ffffff'
-          : settings.theme === 'sepia'
-          ? '#f4ecd8'
-          : settings.theme === 'oled'
-          ? '#000000'
-          : '#0f172a'
-      }}
+      className={`relative w-full max-w-4xl mx-auto flex flex-col justify-between rounded-3xl transition-all duration-300 ${getCardClasses()}`}
+      style={settings.theme === 'custom' ? {
+        backgroundColor: settings.customColors.card,
+        color: settings.customColors.text,
+      } : {}}
     >
       {/* Top Header Controls / Info */}
-      <div className="flex items-center justify-between px-5 sm:px-8 py-4 border-b border-black/5 dark:border-white/5 opacity-80 text-xs sm:text-sm">
+      <div className="flex items-center justify-between px-5 sm:px-8 py-3.5 border-b border-black/5 dark:border-white/5 opacity-80 text-xs sm:text-sm">
         
         {/* Left: Progress Indicator */}
         <div className="flex items-center gap-2 font-medium">
-          <span className="font-mono font-semibold">
-            {totalChunks > 0 ? currentIndex + 1 : 0} / {totalChunks}
+          <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+            {totalChunks > 0 ? currentIndex + 1 : 0} <span className="opacity-40 text-current font-normal">/ {totalChunks}</span>
           </span>
-          <span className="opacity-40">•</span>
-          <span className="opacity-70 hidden sm:inline">
+          <span className="opacity-30">•</span>
+          <span className="opacity-75 hidden sm:inline">
             {remainingWords} kelime kaldı
           </span>
-          <span className="opacity-40 hidden sm:inline">•</span>
-          <span className="flex items-center gap-1 opacity-70">
+          <span className="opacity-30 hidden sm:inline">•</span>
+          <span className="flex items-center gap-1 opacity-75 font-mono">
             <Clock className="w-3.5 h-3.5" />
             ~{estimateReadingTime(remainingWords, wpm)}
           </span>
         </div>
 
         {/* Right: Mode status & quick buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {settings.autoAccelerate && (
-            <span className="flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 animate-pulse">
+            <span className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
               <TrendingUp className="w-3 h-3" />
               Oto-Hızlanma
             </span>
@@ -263,16 +305,16 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
 
           <button
             onClick={() => onUpdateSettings({ ...settings, soundEnabled: !settings.soundEnabled })}
-            className={`p-1.5 rounded-lg transition-colors ${settings.soundEnabled ? 'text-indigo-500 bg-indigo-500/10' : 'opacity-50 hover:opacity-100'}`}
-            title={settings.soundEnabled ? "Sesi Kapat" : "Sesi Aç"}
+            className={`p-2 rounded-xl transition-colors ${settings.soundEnabled ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10' : 'opacity-50 hover:opacity-100'}`}
+            title={settings.soundEnabled ? "Sesi Kapat (M)" : "Sesi Aç (M)"}
           >
             {settings.soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
 
           <button
             onClick={toggleFullscreen}
-            className="p-1.5 rounded-lg opacity-50 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-            title={isFullscreen ? "Tam Ekrandan Çık" : "Tam Ekran"}
+            className="p-2 rounded-xl opacity-50 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+            title={isFullscreen ? "Tam Ekrandan Çık (F)" : "Tam Ekran (F)"}
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
@@ -280,7 +322,7 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
       </div>
 
       {/* Progress Bar */}
-      <div className="w-full h-1 bg-black/5 dark:bg-white/5 relative">
+      <div className="w-full h-1 bg-black/5 dark:bg-white/5 relative overflow-hidden">
         <div 
           className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-150 ease-out"
           style={{ width: `${progressPercent}%` }}
@@ -289,7 +331,7 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
 
       {/* Speed Boost Notification Badge */}
       {speedBoostNotification && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 px-4 py-1.5 rounded-full bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-500/30 animate-bounce flex items-center gap-1.5">
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 px-4 py-1.5 rounded-full bg-emerald-600 text-white text-xs font-bold shadow-lg shadow-emerald-600/30 animate-bounce flex items-center gap-1.5">
           <Flame className="w-3.5 h-3.5 fill-current" />
           {speedBoostNotification}
         </div>
@@ -305,7 +347,7 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
         {/* Countdown Overlay */}
         {countdown !== null && (
           <div className="absolute inset-0 z-20 flex items-center justify-center backdrop-blur-xs bg-black/10 dark:bg-black/40 animate-in fade-in duration-150">
-            <div className="text-8xl sm:text-9xl font-black tracking-tighter text-indigo-500 drop-shadow-2xl animate-pulse">
+            <div className="text-8xl sm:text-9xl font-black tracking-tighter text-indigo-600 dark:text-indigo-400 drop-shadow-2xl animate-pulse">
               {countdown > 0 ? countdown : 'BAŞLA!'}
             </div>
           </div>
@@ -313,9 +355,9 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
 
         {/* ORP Alignment Top & Bottom Anchor Crosshairs */}
         {settings.orpEnabled && settings.chunkSize === 1 && totalChunks > 0 && (
-          <div className="absolute inset-0 pointer-events-none flex flex-col justify-between py-6 items-center opacity-30">
-            <div className="w-0.5 h-4 bg-current rounded-full" />
-            <div className="w-0.5 h-4 bg-current rounded-full" />
+          <div className="absolute inset-0 pointer-events-none flex flex-col justify-between py-6 items-center">
+            <div className="w-0.5 h-4 bg-indigo-500/40 dark:bg-indigo-400/40 rounded-full" />
+            <div className="w-0.5 h-4 bg-indigo-500/40 dark:bg-indigo-400/40 rounded-full" />
           </div>
         )}
 
@@ -350,7 +392,7 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
               </div>
             ) : (
               // Multi-word Chunk or Standard RSVP Layout
-              <div className="flex items-center justify-center gap-2 flex-wrap">
+              <div className="flex items-center justify-center gap-2.5 flex-wrap">
                 {currentChunk?.words.map((w, idx) => (
                   <span key={idx} className="font-semibold opacity-95">
                     {w.raw}
@@ -361,18 +403,18 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
           </div>
         ) : (
           // Empty State Prompt
-          <div className="flex flex-col items-center gap-3 opacity-40 hover:opacity-70 transition-opacity">
+          <div className="flex flex-col items-center gap-3 opacity-50 hover:opacity-80 transition-opacity">
             <FileText className="w-12 h-12 stroke-[1.5]" />
             <div className="text-center">
-              <p className="font-semibold text-base sm:text-lg">Okunacak Metin Bekleniyor</p>
-              <p className="text-xs mt-1">Aşağıdaki alana metin yapıştırın veya kütüphaneden seçin</p>
+              <p className="font-bold text-base sm:text-lg">Okunacak Metin Bekleniyor</p>
+              <p className="text-xs mt-1 opacity-70">Metin yapıştırın veya kütüphaneden seçin</p>
             </div>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onOpenLibrary();
               }}
-              className="mt-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-600 text-white shadow hover:bg-indigo-700 transition-colors"
+              className="mt-2 text-xs font-bold px-4 py-2 rounded-xl bg-indigo-600 text-white shadow hover:bg-indigo-700 transition-colors"
             >
               Kütüphaneyi Aç
             </button>
@@ -403,14 +445,22 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
         {/* Speed Adjustment & Presets */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           
-          {/* WPM Slider & Value */}
-          <div className="flex items-center gap-3 w-full sm:w-auto flex-1 max-w-md">
+          {/* WPM Slider, Stepper & Value */}
+          <div className="flex items-center gap-2.5 w-full sm:w-auto flex-1 max-w-md">
             <div className="flex items-center gap-1 text-xs font-bold shrink-0 opacity-75">
               <span>Hız:</span>
-              <span className="font-mono px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 font-bold min-w-[65px] text-center">
+              <span className="font-mono px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold min-w-[65px] text-center">
                 {wpm} WPM
               </span>
             </div>
+
+            <button
+              onClick={() => onWpmChange(Math.max(100, wpm - 25))}
+              className="p-1 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 transition-colors opacity-70 hover:opacity-100"
+              title="-25 WPM (↓)"
+            >
+              <Minus className="w-3.5 h-3.5" />
+            </button>
 
             <input 
               type="range"
@@ -421,6 +471,14 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
               onChange={(e) => onWpmChange(Number(e.target.value))}
               className="flex-1 h-2 rounded-lg appearance-none cursor-pointer bg-black/10 dark:bg-white/10"
             />
+
+            <button
+              onClick={() => onWpmChange(Math.min(1500, wpm + 25))}
+              className="p-1 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 transition-colors opacity-70 hover:opacity-100"
+              title="+25 WPM (↑)"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {/* Quick Speed Preset Chips */}
@@ -431,7 +489,7 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
                 onClick={() => onWpmChange(preset.value)}
                 className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                   wpm === preset.value
-                    ? 'bg-indigo-600 text-white shadow-sm scale-105'
+                    ? 'bg-indigo-600 text-white shadow-sm font-bold scale-105'
                     : 'bg-black/5 dark:bg-white/5 opacity-70 hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10'
                 }`}
                 title={preset.title}
@@ -448,8 +506,8 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
           <button
             onClick={() => jumpWords(-10)}
             disabled={totalChunks === 0 || currentIndex === 0}
-            className="p-3 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors disabled:opacity-30"
-            title="10 Kelime Geri (←)"
+            className="p-3 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors disabled:opacity-30"
+            title="10 Kelime Geri (← / J)"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -457,7 +515,7 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
           <button
             onClick={reset}
             disabled={totalChunks === 0 || (currentIndex === 0 && !isPlaying)}
-            className="p-3 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-red-500/10 hover:text-red-500 transition-colors disabled:opacity-30"
+            className="p-3 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-red-500/10 hover:text-red-500 transition-colors disabled:opacity-30"
             title="Başa Dön (R)"
           >
             <RotateCcw className="w-5 h-5" />
@@ -467,13 +525,14 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
           <button
             onClick={togglePlay}
             disabled={totalChunks === 0}
-            className={`flex-1 max-w-[200px] sm:max-w-[240px] py-3 px-6 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg transition-all active:scale-95 ${
+            className={`flex-1 max-w-[200px] sm:max-w-[240px] py-3.5 px-6 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg transition-all active:scale-95 ${
               totalChunks === 0
                 ? 'opacity-40 bg-gray-500/20 cursor-not-allowed shadow-none'
                 : isPlaying || countdown !== null
                 ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/25'
                 : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/30'
             }`}
+            title="Başlat / Duraklat (Space)"
           >
             {isPlaying || countdown !== null ? (
               <>
@@ -491,8 +550,8 @@ export const RSVPReader: React.FC<RSVPReaderProps> = ({
           <button
             onClick={() => jumpWords(10)}
             disabled={totalChunks === 0 || currentIndex >= totalChunks - 1}
-            className="p-3 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors disabled:opacity-30"
-            title="10 Kelime İleri (→)"
+            className="p-3 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors disabled:opacity-30"
+            title="10 Kelime İleri (→ / L)"
           >
             <ChevronRight className="w-5 h-5" />
           </button>

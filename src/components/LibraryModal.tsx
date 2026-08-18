@@ -192,7 +192,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                       onSelectText(item.content, item.title);
                       onClose();
                     }}
-                    className="p-4 rounded-2xl border border-black/5 dark:border-white/10 bg-black/2 dark:bg-white/2 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 hover:border-indigo-500/40 cursor-pointer transition-all flex flex-col justify-between gap-3 group"
+                    className="p-4 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-indigo-50/70 dark:hover:bg-indigo-950/30 hover:border-indigo-500/40 hover:shadow-md cursor-pointer transition-all flex flex-col justify-between gap-3 group"
                   >
                     <div>
                       <div className="flex items-center justify-between gap-2">

@@ -52,9 +52,10 @@ import { PRESET_LIBRARY } from '@/lib/library';
 import { 
   Clipboard, 
   FileText, 
-  BookOpen,
+  BookOpen, 
   Trash2
 } from 'lucide-react';
+import { estimateReadingTime } from '@/lib/orp';
 
 export default function Home() {
   // --- Global App States (Lazy initialized from LocalStorage) ---
@@ -161,23 +162,21 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [wpm, settings, handleUpdateWpm, handleUpdateSettings]);
 
-  // --- Dynamic Theme Wrapper Classes & Styles ---
+  // --- Dynamic Theme Classes ---
   const themeClass = useMemo(() => {
     switch (settings.theme) {
-      case 'dark':
-        return 'bg-slate-950 text-slate-100 selection:bg-indigo-500/30 selection:text-indigo-200';
       case 'light':
-        return 'bg-slate-50 text-slate-900 selection:bg-indigo-500/20 selection:text-indigo-600';
+        return 'bg-[#f8fafc] text-slate-900 bg-grid-pattern-light selection:bg-indigo-500/20 selection:text-indigo-700';
       case 'sepia':
-        return 'bg-[#f8f1e3] text-[#4a3b2c] selection:bg-[#d8c39e] selection:text-[#2b1f14]';
+        return 'bg-[#fbf0d9] text-[#2e2117] bg-grid-pattern-sepia selection:bg-[#d8c39e] selection:text-[#2b1f14]';
       case 'oled':
         return 'bg-black text-white selection:bg-white/20 selection:text-white';
       case 'cyber':
-        return 'bg-[#080d1a] text-cyan-50 selection:bg-cyan-500/30 selection:text-cyan-200';
+        return 'bg-[#060913] text-cyan-50 selection:bg-cyan-500/30 selection:text-cyan-200';
       case 'custom':
         return '';
-      default:
-        return 'bg-slate-950 text-slate-100';
+      default: // dark
+        return 'bg-[#090d16] text-slate-100 bg-grid-pattern-dark selection:bg-indigo-500/30 selection:text-indigo-200';
     }
   }, [settings.theme]);
 
@@ -212,9 +211,28 @@ export default function Home() {
     }
   };
 
+  const wordCount = useMemo(() => {
+    return text.trim().split(/\s+/).filter(w => w.length > 0).length;
+  }, [text]);
+
+  const getTextareaClasses = () => {
+    switch (settings.theme) {
+      case 'light':
+        return 'bg-white border-slate-200/80 text-slate-900 focus:border-indigo-500 card-shadow-light';
+      case 'sepia':
+        return 'bg-[#fcf7ec] border-[#e6dbb9] text-[#2e2117] focus:border-[#5b4636] card-shadow-sepia';
+      case 'oled':
+        return 'bg-black border-white/20 text-white focus:border-white card-shadow-oled';
+      case 'cyber':
+        return 'bg-[#0b1021] border-cyan-500/20 text-cyan-50 focus:border-cyan-400';
+      default:
+        return 'bg-[#0f172a] border-white/10 text-slate-100 focus:border-indigo-500 card-shadow-dark';
+    }
+  };
+
   return (
     <div 
-      className={`min-h-screen flex flex-col justify-between transition-colors duration-500 pb-20 md:pb-0 ${themeClass} ${fontFamilyClass}`}
+      className={`min-h-screen flex flex-col justify-between transition-colors duration-300 pb-20 md:pb-0 ${themeClass} ${fontFamilyClass}`}
       style={customThemeStyle}
     >
       {/* Top Navbar */}
@@ -229,7 +247,7 @@ export default function Home() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-center gap-8">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-center gap-6">
         
         {/* Dynamic Mode Renderer */}
         {currentMode === 'rsvp' && (
@@ -275,8 +293,13 @@ export default function Home() {
                   <span>Aktif Okuma Metni</span>
                 </span>
                 {textTitle && (
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 max-w-[200px] sm:max-w-xs truncate">
                     {textTitle}
+                  </span>
+                )}
+                {wordCount > 0 && (
+                  <span className="text-[11px] opacity-50 hidden sm:inline font-mono">
+                    ({wordCount} kelime • ~{estimateReadingTime(wordCount, wpm)})
                   </span>
                 )}
               </div>
@@ -284,7 +307,7 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsLibraryOpen(true)}
-                  className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors border border-indigo-500/20"
                 >
                   <BookOpen className="w-3.5 h-3.5" />
                   <span>Kütüphaneden Seç</span>
@@ -316,7 +339,7 @@ export default function Home() {
               onChange={(e) => handleTextChange(e.target.value, 'Özel Metin')}
               placeholder="Buraya okumak istediğiniz metni yapıştırın veya doğrudan yazın..."
               rows={3}
-              className="w-full p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 outline-none resize-y text-xs sm:text-sm font-sans focus:ring-2 focus:ring-indigo-500 transition-all leading-relaxed"
+              className={`w-full p-4 rounded-2xl border outline-none resize-y text-xs sm:text-sm font-sans focus:ring-2 focus:ring-indigo-500 transition-all leading-relaxed ${getTextareaClasses()}`}
             />
           </div>
         )}
