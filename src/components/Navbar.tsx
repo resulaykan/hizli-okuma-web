@@ -9,7 +9,9 @@ import {
   Library, 
   BarChart3, 
   Keyboard, 
-  Settings2
+  Settings2,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { AppMode, UserSettings } from '@/types';
 
@@ -20,6 +22,7 @@ interface NavbarProps {
   onOpenStats: () => void;
   onOpenShortcuts: () => void;
   onOpenSettings: () => void;
+  onToggleTheme: () => void;
   settings: UserSettings;
 }
 
@@ -30,6 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenStats,
   onOpenShortcuts,
   onOpenSettings,
+  onToggleTheme,
   settings,
 }) => {
   const modes = [
@@ -128,6 +132,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Library className="w-3.5 h-3.5" />
               <span>Kütüphane</span>
+            </button>
+
+            {/* Quick 1-Click Theme Switcher */}
+            <button
+              onClick={onToggleTheme}
+              title={settings.theme === 'light' ? "Karanlık Mod'a Geç" : "Aydınlık Mod'a Geç"}
+              className="p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors opacity-75 hover:opacity-100"
+            >
+              {settings.theme === 'light' ? (
+                <Moon className="w-4.5 h-4.5 text-indigo-600" />
+              ) : (
+                <Sun className="w-4.5 h-4.5 text-amber-400" />
+              )}
             </button>
 
             <button

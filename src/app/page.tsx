@@ -54,7 +54,10 @@ import {
   FileText, 
   BookOpen, 
   Trash2, 
-  Bookmark
+  Bookmark,
+  Activity,
+  Trophy,
+  Flame
 } from 'lucide-react';
 import { estimateReadingTime } from '@/lib/orp';
 
@@ -87,6 +90,11 @@ export default function Home() {
     setSettings(newSettings);
     saveStoredSettings(newSettings);
   }, []);
+
+  const handleToggleTheme = useCallback(() => {
+    const nextTheme = settings.theme === 'light' ? 'dark' : 'light';
+    handleUpdateSettings({ ...settings, theme: nextTheme });
+  }, [settings, handleUpdateSettings]);
 
   const handleUpdateWpm = useCallback((newWpm: number) => {
     setWpm(newWpm);
@@ -247,6 +255,7 @@ export default function Home() {
         onOpenStats={() => setIsStatsOpen(true)}
         onOpenShortcuts={() => setIsShortcutsOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onToggleTheme={handleToggleTheme}
         settings={settings}
       />
 
@@ -293,7 +302,7 @@ export default function Home() {
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
               <span className="text-[11px] font-bold uppercase tracking-wider opacity-60 flex items-center gap-1 shrink-0">
                 <Bookmark className="w-3.5 h-3.5 text-indigo-500" />
-                <span>Önerilenler:</span>
+                <span>Önerilen Eserler:</span>
               </span>
               {quickPresets.map((item) => (
                 <button
@@ -368,6 +377,51 @@ export default function Home() {
             />
           </div>
         )}
+
+        {/* Live Persistent Stats Bar (Portfolio Metric Showcase) */}
+        <div className="w-full max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+          <div className="p-3.5 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+              <Activity className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-bold opacity-60">Toplam Kelime</p>
+              <p className="text-sm font-bold font-mono">{stats.totalWordsRead.toLocaleString('tr-TR')}</p>
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <Trophy className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-bold opacity-60">Rekor Hız</p>
+              <p className="text-sm font-bold font-mono">{stats.highestWpm} WPM</p>
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500">
+              <Flame className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-bold opacity-60">Günlük Seri</p>
+              <p className="text-sm font-bold font-mono">{stats.streakDays} Gün</p>
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+              <Trophy className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-bold opacity-60">Schulte 5x5</p>
+              <p className="text-sm font-bold font-mono">
+                {stats.schulteBestTimeSeconds ? `${stats.schulteBestTimeSeconds.toFixed(1)} sn` : '-'}
+              </p>
+            </div>
+          </div>
+        </div>
 
       </main>
 
