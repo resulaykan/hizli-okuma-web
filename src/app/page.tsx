@@ -53,7 +53,8 @@ import {
   Clipboard, 
   FileText, 
   BookOpen, 
-  Trash2
+  Trash2, 
+  Bookmark
 } from 'lucide-react';
 import { estimateReadingTime } from '@/lib/orp';
 
@@ -162,21 +163,21 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [wpm, settings, handleUpdateWpm, handleUpdateSettings]);
 
-  // --- Dynamic Theme Classes ---
+  // --- Dynamic Theme Background Classes ---
   const themeClass = useMemo(() => {
     switch (settings.theme) {
       case 'light':
-        return 'bg-[#f8fafc] text-slate-900 bg-grid-pattern-light selection:bg-indigo-500/20 selection:text-indigo-700';
+        return 'bg-light-ambient text-slate-900 selection:bg-indigo-500/20 selection:text-indigo-700';
       case 'sepia':
-        return 'bg-[#fbf0d9] text-[#2e2117] bg-grid-pattern-sepia selection:bg-[#d8c39e] selection:text-[#2b1f14]';
+        return 'bg-sepia-ambient text-[#2e2117] selection:bg-[#d8c39e] selection:text-[#2b1f14]';
       case 'oled':
-        return 'bg-black text-white selection:bg-white/20 selection:text-white';
+        return 'bg-oled-ambient text-white selection:bg-white/20 selection:text-white';
       case 'cyber':
-        return 'bg-[#060913] text-cyan-50 selection:bg-cyan-500/30 selection:text-cyan-200';
+        return 'bg-cyber-ambient text-cyan-50 selection:bg-cyan-500/30 selection:text-cyan-200';
       case 'custom':
         return '';
       default: // dark
-        return 'bg-[#090d16] text-slate-100 bg-grid-pattern-dark selection:bg-indigo-500/30 selection:text-indigo-200';
+        return 'bg-dark-ambient text-slate-100 selection:bg-indigo-500/30 selection:text-indigo-200';
     }
   }, [settings.theme]);
 
@@ -218,17 +219,20 @@ export default function Home() {
   const getTextareaClasses = () => {
     switch (settings.theme) {
       case 'light':
-        return 'bg-white border-slate-200/80 text-slate-900 focus:border-indigo-500 card-shadow-light';
+        return 'bg-white border-slate-200/90 text-slate-900 focus:border-indigo-500 card-stage-light';
       case 'sepia':
-        return 'bg-[#fcf7ec] border-[#e6dbb9] text-[#2e2117] focus:border-[#5b4636] card-shadow-sepia';
+        return 'bg-[#fdfaf4] border-[#e7dcbe] text-[#2e2117] focus:border-[#5b4636] card-stage-sepia';
       case 'oled':
-        return 'bg-black border-white/20 text-white focus:border-white card-shadow-oled';
+        return 'bg-black border-white/20 text-white focus:border-white card-stage-oled';
       case 'cyber':
-        return 'bg-[#0b1021] border-cyan-500/20 text-cyan-50 focus:border-cyan-400';
+        return 'bg-[#090e1f] border-cyan-500/25 text-cyan-50 focus:border-cyan-400';
       default:
-        return 'bg-[#0f172a] border-white/10 text-slate-100 focus:border-indigo-500 card-shadow-dark';
+        return 'bg-[#0f172a]/90 backdrop-blur-md border-white/10 text-slate-100 focus:border-indigo-500 card-stage-dark';
     }
   };
+
+  // Curated quick library presets for 1-click loading
+  const quickPresets = PRESET_LIBRARY.slice(0, 6);
 
   return (
     <div 
@@ -247,7 +251,7 @@ export default function Home() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-center gap-6">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-center gap-6">
         
         {/* Dynamic Mode Renderer */}
         {currentMode === 'rsvp' && (
@@ -281,10 +285,31 @@ export default function Home() {
           <EyeTraining />
         )}
 
-        {/* Quick Text Editor Bar (Visible for RSVP & Guided modes) */}
+        {/* Quick Text Library Tags & Editor Bar (Visible for RSVP & Guided modes) */}
         {(currentMode === 'rsvp' || currentMode === 'guided') && (
-          <div className="w-full max-w-4xl mx-auto space-y-3 pt-2">
+          <div className="w-full max-w-4xl mx-auto space-y-3.5 pt-2">
             
+            {/* Quick 1-Click Library Presets Row */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              <span className="text-[11px] font-bold uppercase tracking-wider opacity-60 flex items-center gap-1 shrink-0">
+                <Bookmark className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Önerilenler:</span>
+              </span>
+              {quickPresets.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => handleTextChange(item.content, item.title)}
+                  className={`text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap transition-all border shrink-0 ${
+                    textTitle === item.title
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-500/20'
+                      : 'bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/10 opacity-70 hover:opacity-100 hover:border-indigo-500/30'
+                  }`}
+                >
+                  {item.title}
+                </button>
+              ))}
+            </div>
+
             {/* Quick action bar */}
             <div className="flex flex-wrap items-center justify-between gap-2 px-1">
               <div className="flex items-center gap-2">
