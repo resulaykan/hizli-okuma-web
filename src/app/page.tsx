@@ -1,265 +1,187 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
-  ArrowRightIcon, 
-  BookOpenIcon, 
-  PauseIcon, 
-  ArrowPathIcon,
-  Cog6ToothIcon,
-  XMarkIcon,
-  SwatchIcon,
-  EyeIcon,
-  MagnifyingGlassIcon,
-  PaintBrushIcon,
-  ClipboardDocumentIcon,
-  DocumentTextIcon,
-  ArrowsPointingOutIcon,
-  ArrowsPointingInIcon,
-  ClockIcon,
-  SpeakerWaveIcon,
-  SpeakerXMarkIcon,
-  StopIcon
-} from '@heroicons/react/24/outline';
-
-// Tipler
-type Theme = 'default' | 'sepia' | 'dark' | 'custom';
-type ChunkSize = 1 | 2 | 3;
-type FontSize = number;
-type FontFamily = 'sans' | 'serif' | 'mono';
-
-const SAMPLE_TEXT = `Ey Türk gençliği! Birinci vazifen; Türk istiklalini, Türk cumhuriyetini, ilelebet muhafaza ve müdafaa etmektir. Mevcudiyetinin ve istikbalinin yegâne temeli budur. Bu temel, senin en kıymetli hazinendir. İstikbalde dahi, seni bu hazineden mahrum etmek isteyecek dâhilî ve haricî bedhahların olacaktır. Bir gün, istiklal ve cumhuriyeti müdafaa mecburiyetine düşersen, vazifeye atılmak için, içinde bulunacağın vaziyetin imkân ve şeraitini düşünmeyeceksin!`;
+  Navbar 
+} from '@/components/Navbar';
+import { 
+  RSVPReader 
+} from '@/components/RSVPReader';
+import { 
+  GuidedReader 
+} from '@/components/GuidedReader';
+import { 
+  SchulteTable 
+} from '@/components/SchulteTable';
+import { 
+  EyeTraining 
+} from '@/components/EyeTraining';
+import { 
+  LibraryModal 
+} from '@/components/LibraryModal';
+import { 
+  SettingsModal 
+} from '@/components/SettingsModal';
+import { 
+  StatsModal 
+} from '@/components/StatsModal';
+import { 
+  ShortcutsModal 
+} from '@/components/ShortcutsModal';
+import { 
+  CompletionModal 
+} from '@/components/CompletionModal';
+import { 
+  AppMode, 
+  UserSettings, 
+  UserStats, 
+  ReadingSessionResult 
+} from '@/types';
+import { 
+  loadStoredSettings, 
+  saveStoredSettings, 
+  loadStoredWpm, 
+  saveStoredWpm, 
+  loadStoredStats, 
+  recordReadingSession, 
+  DEFAULT_STATS,
+  loadLastCustomText,
+  saveLastCustomText
+} from '@/lib/storage';
+import { PRESET_LIBRARY } from '@/lib/library';
+import { 
+  Clipboard, 
+  FileText, 
+  BookOpen,
+  Trash2
+} from 'lucide-react';
 
 export default function Home() {
-  // --- State Yönetimi ---
-  const [text, setText] = useState('');
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [wpm, setWpm] = useState(300);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
+  // --- Global App States (Lazy initialized from LocalStorage) ---
+  const [currentMode, setCurrentMode] = useState<AppMode>('rsvp');
+  const [settings, setSettings] = useState<UserSettings>(loadStoredSettings);
+  const [wpm, setWpm] = useState<number>(loadStoredWpm);
+  const [stats, setStats] = useState<UserStats>(loadStoredStats);
 
-  const readerRef = useRef<HTMLDivElement>(null);
-
-  // Ayarlar State'i
-  const [settings, setSettings] = useState({
-    theme: 'default' as Theme,
-    chunkSize: 1 as ChunkSize,
-    fontSize: 64,
-    fontFamily: 'sans' as FontFamily,
-    soundEnabled: false, // Ses ayarı
-    customColors: {
-      background: '#ffffff',
-      text: '#1e293b',
-      primary: '#4f46e5',
-    }
+  const [text, setText] = useState<string>(() => {
+    const last = loadLastCustomText();
+    return last || PRESET_LIBRARY[0]?.content || '';
   });
 
-  // --- Ses Motoru ---
-  const playSound = useCallback((type: 'tick' | 'tock') => {
-    if (!settings.soundEnabled) return;
+  const [textTitle, setTextTitle] = useState<string>(() => {
+    const last = loadLastCustomText();
+    return last ? 'Kayıtlı Metin' : (PRESET_LIBRARY[0]?.title || 'Atatürk’ün Gençliğe Hitabesi');
+  });
 
-    try {
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContext) return;
-      
-      const ctx = new AudioContext();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+  // --- Modals Visibility States ---
+  const [isLibraryOpen, setIsLibraryOpen] = useState<boolean>(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [isStatsOpen, setIsStatsOpen] = useState<boolean>(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState<boolean>(false);
+  const [completedSession, setCompletedSession] = useState<ReadingSessionResult | null>(null);
 
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      if (type === 'tick') {
-        // Geri sayım sesi (Yüksek ton)
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.1);
-      } else {
-        // Metronom sesi (Tok, kısa ses)
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(300, ctx.currentTime); // Daha düşük frekans
-        gain.gain.setValueAtTime(0.05, ctx.currentTime); // Daha düşük ses
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.05);
-      }
-    } catch (e) {
-      console.error("Audio error", e);
-    }
-  }, [settings.soundEnabled]);
-
-
-  // --- LocalStorage İşlemleri ---
-  useEffect(() => {
-    const savedSettings = localStorage.getItem('hizli-okuma-settings');
-    const savedWpm = localStorage.getItem('hizli-okuma-wpm');
-
-    if (savedSettings) {
-      try {
-        const parsed = JSON.parse(savedSettings);
-        setSettings(prev => ({
-          ...prev,
-          ...parsed,
-          customColors: { ...prev.customColors, ...(parsed.customColors || {}) }
-        }));
-      } catch (e) {
-        console.error('Ayarlar yüklenemedi:', e);
-      }
-    }
-
-    if (savedWpm) {
-      setWpm(Number(savedWpm));
-    }
-    
-    setIsLoaded(true);
+  // --- Save Changes to LocalStorage ---
+  const handleUpdateSettings = useCallback((newSettings: UserSettings) => {
+    setSettings(newSettings);
+    saveStoredSettings(newSettings);
   }, []);
 
+  const handleUpdateWpm = useCallback((newWpm: number) => {
+    setWpm(newWpm);
+    saveStoredWpm(newWpm);
+  }, []);
+
+  const handleTextChange = useCallback((newText: string, title?: string) => {
+    setText(newText);
+    if (title) setTextTitle(title);
+    saveLastCustomText(newText);
+  }, []);
+
+  // --- Reading Completed Handler ---
+  const handleReadingComplete = useCallback((wordsCount: number, secondsRead: number, averageWpm: number) => {
+    const updatedStats = recordReadingSession(wordsCount, secondsRead, averageWpm);
+    setStats(updatedStats);
+
+    setCompletedSession({
+      wordsRead: wordsCount,
+      timeSpentSeconds: secondsRead,
+      averageWpm: averageWpm,
+      completedAt: new Date().toISOString(),
+      textTitle: textTitle
+    });
+  }, [textTitle]);
+
+  // --- Global Keyboard Shortcuts Listener ---
   useEffect(() => {
-    if (!isLoaded) return;
-    localStorage.setItem('hizli-okuma-settings', JSON.stringify(settings));
-    localStorage.setItem('hizli-okuma-wpm', String(wpm));
-  }, [settings, wpm, isLoaded]);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is currently typing in an input or textarea
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
 
+      // Close open modals on Escape
+      if (e.key === 'Escape') {
+        setIsLibraryOpen(false);
+        setIsSettingsOpen(false);
+        setIsStatsOpen(false);
+        setIsShortcutsOpen(false);
+        setCompletedSession(null);
+        return;
+      }
 
-  // --- Mantık Motoru ---
+      // Open Shortcuts Modal on ? or K
+      if (e.key === '?' || (e.key === 'k' && (e.metaKey || e.ctrlKey))) {
+        e.preventDefault();
+        setIsShortcutsOpen(prev => !prev);
+        return;
+      }
 
-  const chunks = useMemo(() => {
-    const rawWords = text.trim().split(/\s+/).filter(word => word.length > 0);
-    const result = [];
-    for (let i = 0; i < rawWords.length; i += settings.chunkSize) {
-      result.push(rawWords.slice(i, i + settings.chunkSize).join(' '));
-    }
-    return result;
-  }, [text, settings.chunkSize]);
+      // Increase / Decrease WPM
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        handleUpdateWpm(Math.min(1500, wpm + 25));
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        handleUpdateWpm(Math.max(100, wpm - 25));
+      }
 
-  const totalChunks = chunks.length;
+      // Sound mute toggle on M
+      if (e.key.toLowerCase() === 'm') {
+        handleUpdateSettings({ ...settings, soundEnabled: !settings.soundEnabled });
+      }
 
-  const estimatedTime = useMemo(() => {
-    if (totalChunks === 0) return '0 sn';
-    const totalWords = chunks.length * settings.chunkSize;
-    const seconds = (totalWords / wpm) * 60;
-    if (seconds < 60) return `${Math.ceil(seconds)} sn`;
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.ceil(seconds % 60);
-    return `${minutes} dk ${remainingSeconds > 0 ? remainingSeconds + ' sn' : ''}`;
-  }, [chunks.length, settings.chunkSize, wpm]);
-
-  // Geri Sayım Efekti
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (countdown !== null && countdown > 0) {
-      playSound('tick'); // Ses çal
-      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-    } else if (countdown === 0) {
-      playSound('tick'); // Son bip (GO!)
-      setCountdown(null);
-      setIsPlaying(true);
-    }
-    return () => clearTimeout(timer);
-  }, [countdown, playSound]);
-
-  // Okuma Loop'u
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-
-    if (isPlaying && currentIndex < totalChunks) {
-      const msPerChunk = (60000 / wpm) * settings.chunkSize;
-      
-      interval = setInterval(() => {
-        playSound('tock'); // Metronom sesi çal
-        setCurrentIndex((prev) => {
-          if (prev >= totalChunks - 1) {
-            setIsPlaying(false);
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, msPerChunk);
-    } else if (currentIndex >= totalChunks) {
-      setIsPlaying(false);
-    }
-
-    return () => clearInterval(interval);
-  }, [isPlaying, wpm, currentIndex, totalChunks, settings.chunkSize, playSound]);
-
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      // Chunk size shortcuts (1, 2, 3)
+      if (e.key === '1') handleUpdateSettings({ ...settings, chunkSize: 1 });
+      if (e.key === '2') handleUpdateSettings({ ...settings, chunkSize: 2 });
+      if (e.key === '3') handleUpdateSettings({ ...settings, chunkSize: 3 });
     };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
 
-  // --- Yardımcı Fonksiyonlar ---
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [wpm, settings, handleUpdateWpm, handleUpdateSettings]);
 
-  const togglePlay = () => {
-    if (totalChunks === 0) return;
-
-    if (isPlaying || countdown !== null) {
-      setIsPlaying(false);
-      setCountdown(null);
-    } else {
-      if (currentIndex >= totalChunks - 1) setCurrentIndex(0);
-      setCountdown(3);
+  // --- Dynamic Theme Wrapper Classes & Styles ---
+  const themeClass = useMemo(() => {
+    switch (settings.theme) {
+      case 'dark':
+        return 'bg-slate-950 text-slate-100 selection:bg-indigo-500/30 selection:text-indigo-200';
+      case 'light':
+        return 'bg-slate-50 text-slate-900 selection:bg-indigo-500/20 selection:text-indigo-600';
+      case 'sepia':
+        return 'bg-[#f8f1e3] text-[#4a3b2c] selection:bg-[#d8c39e] selection:text-[#2b1f14]';
+      case 'oled':
+        return 'bg-black text-white selection:bg-white/20 selection:text-white';
+      case 'cyber':
+        return 'bg-[#080d1a] text-cyan-50 selection:bg-cyan-500/30 selection:text-cyan-200';
+      case 'custom':
+        return '';
+      default:
+        return 'bg-slate-950 text-slate-100';
     }
-  };
+  }, [settings.theme]);
 
-  const toggleFullscreen = () => {
-    if (!readerRef.current) return;
-
-    if (!document.fullscreenElement) {
-      readerRef.current.requestFullscreen().catch(err => {
-        console.error(`Tam ekran hatası: ${err.message}`);
-      });
-    } else {
-      document.exitFullscreen();
-    }
-  };
-
-  const reset = () => {
-    setIsPlaying(false);
-    setCountdown(null);
-    setCurrentIndex(0);
-  };
-
-  const loadSampleText = () => {
-    setText(SAMPLE_TEXT);
-    reset();
-  };
-
-  const pasteFromClipboard = async () => {
-    try {
-      const clipboardText = await navigator.clipboard.readText();
-      setText(clipboardText);
-      reset();
-    } catch (err) {
-      console.error('Pano erişim hatası:', err);
-      alert('Panoya erişilemedi.');
-    }
-  };
-
-  const updateCustomColor = (key: keyof typeof settings.customColors, value: string) => {
-    setSettings(prev => ({
-      ...prev,
-      customColors: {
-        ...prev.customColors,
-        [key]: value
-      }
-    }));
-  };
-
-  const progress = totalChunks > 0 ? (currentIndex / totalChunks) * 100 : 0;
-
-  // --- Stil ve Renk Hesaplamaları ---
-
-  const getThemeStyle = () => {
+  const customThemeStyle = useMemo(() => {
     if (settings.theme === 'custom') {
       return {
         backgroundColor: settings.customColors.background,
@@ -267,431 +189,206 @@ export default function Home() {
       };
     }
     return {};
-  };
+  }, [settings.theme, settings.customColors]);
 
-  const getReaderStyle = () => {
-     const style: any = { fontFamily: fontFamilies[settings.fontFamily] };
-     if (settings.theme === 'custom') {
-      style.backgroundColor = settings.customColors.background;
-      style.borderColor = settings.customColors.text + '20';
-      style.color = settings.customColors.text;
+  const fontFamilyClass = useMemo(() => {
+    switch (settings.fontFamily) {
+      case 'lexend': return 'font-lexend';
+      case 'sans': return 'font-sans-custom';
+      case 'serif': return 'font-serif-custom';
+      case 'mono': return 'font-mono-custom';
+      default: return 'font-lexend';
     }
-    return style;
-  }
+  }, [settings.fontFamily]);
 
-  const getPrimaryStyle = () => {
-    if (settings.theme === 'custom') {
-      return { backgroundColor: settings.customColors.primary, color: '#ffffff' };
+  const handlePasteClipboard = async () => {
+    try {
+      const clipboardText = await navigator.clipboard.readText();
+      if (clipboardText) {
+        handleTextChange(clipboardText, 'Panodan Yapıştırılan Metin');
+      }
+    } catch {
+      alert('Panoya erişim izni alınamadı.');
     }
-    return {};
-  };
-
-  const themeClasses = {
-    default: 'bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-slate-900',
-    sepia: 'bg-[#f4ecd8] text-[#5b4636]',
-    dark: 'bg-gray-950 text-gray-100',
-    custom: '',
-  };
-
-  const readerBgClasses = {
-    default: 'bg-white border-slate-200 shadow-xl',
-    sepia: 'bg-[#fdf6e3] border-[#e6dbb9] shadow-lg shadow-[#d3cbb1]/50',
-    dark: 'bg-gray-900 border-gray-800 shadow-2xl shadow-black/50',
-    custom: 'shadow-xl',
-  };
-
-  const fontFamilies = {
-    sans: 'ui-sans-serif, system-ui, sans-serif',
-    serif: 'ui-serif, Georgia, serif',
-    mono: 'ui-monospace, SFMono-Regular, monospace',
   };
 
   return (
     <div 
-      className={`min-h-screen flex flex-col transition-colors duration-500 ${themeClasses[settings.theme]}`}
-      style={{ ...getThemeStyle(), fontFamily: fontFamilies[settings.fontFamily] }}
+      className={`min-h-screen flex flex-col justify-between transition-colors duration-500 pb-20 md:pb-0 ${themeClass} ${fontFamilyClass}`}
+      style={customThemeStyle}
     >
-      
-      {/* Navbar */}
-      <nav 
-        className="fixed top-0 right-0 z-40 p-6 flex justify-end w-full"
-      >
-        <button 
-          onClick={() => setIsSettingsOpen(true)}
-          className="p-2 rounded-full transition-colors hover:bg-black/5"
-        >
-          <Cog6ToothIcon className="w-6 h-6" />
-        </button>
-      </nav>
+      {/* Top Navbar */}
+      <Navbar
+        currentMode={currentMode}
+        onModeChange={setCurrentMode}
+        onOpenLibrary={() => setIsLibraryOpen(true)}
+        onOpenStats={() => setIsStatsOpen(true)}
+        onOpenShortcuts={() => setIsShortcutsOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        settings={settings}
+      />
 
-      {/* Settings Modal */}
-      {isSettingsOpen && (
-        <>
-          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50" onClick={() => setIsSettingsOpen(false)} />
-          <div className={`fixed right-0 top-0 h-full w-80 max-w-full z-50 p-6 shadow-2xl transition-transform duration-300 transform translate-x-0 overflow-y-auto ${settings.theme === 'dark' ? 'bg-gray-900 border-l border-gray-800' : 'bg-white'}`}
-             style={settings.theme === 'custom' ? { backgroundColor: settings.customColors.background, color: settings.customColors.text, borderLeft: `1px solid ${settings.customColors.text}20` } : {}}
-          >
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-xl font-bold">Ayarlar</h2>
-              <button onClick={() => setIsSettingsOpen(false)}><XMarkIcon className="w-6 h-6" /></button>
-            </div>
-
-            <div className="space-y-8">
-              
-              {/* Ses Ayarı */}
-              <div className="flex items-center justify-between p-3 rounded-lg bg-black/5">
-                <div className="flex items-center gap-2 text-sm font-semibold opacity-80">
-                  {settings.soundEnabled ? <SpeakerWaveIcon className="w-5 h-5" /> : <SpeakerXMarkIcon className="w-5 h-5" />}
-                  <span>Ses Efektleri</span>
-                </div>
-                <button 
-                  onClick={() => setSettings({ ...settings, soundEnabled: !settings.soundEnabled })}
-                  className={`w-12 h-6 rounded-full transition-colors relative ${settings.soundEnabled ? 'bg-indigo-600' : 'bg-gray-300'}`}
-                  style={settings.soundEnabled && settings.theme === 'custom' ? { backgroundColor: settings.customColors.primary } : {}}
-                >
-                  <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${settings.soundEnabled ? 'left-7' : 'left-1'}`} />
-                </button>
-              </div>
-
-              {/* Tema Seçimi */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm font-semibold opacity-70">
-                  <SwatchIcon className="w-4 h-4" /> Tema
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: 'default', name: 'Normal', class: 'bg-white border-gray-200 text-slate-900' },
-                    { id: 'sepia', name: 'Sepya', class: 'bg-[#f4ecd8] border-[#e6dbb9] text-[#5b4636]' },
-                    { id: 'dark', name: 'Koyu', class: 'bg-gray-900 border-gray-700 text-white' },
-                    { id: 'custom', name: 'Özel', class: 'bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 text-white border-transparent' }
-                  ].map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => setSettings({ ...settings, theme: t.id as Theme })}
-                      className={`h-12 rounded-lg border flex items-center justify-center text-xs font-medium transition-all ${t.class} ${settings.theme === t.id ? 'ring-2 ring-indigo-500 ring-offset-2' : ''}`}
-                    >
-                      {t.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Özel Renk Seçiciler */}
-              {settings.theme === 'custom' && (
-                <div className="space-y-3 p-4 rounded-xl bg-black/5 animate-in fade-in slide-in-from-top-4 duration-300">
-                  <div className="flex items-center gap-2 text-sm font-semibold opacity-70 mb-2">
-                    <PaintBrushIcon className="w-4 h-4" /> Renkleri Düzenle
-                  </div>
-                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium opacity-80">Arka Plan</label>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono opacity-60">{settings.customColors.background}</span>
-                      <input 
-                        type="color" 
-                        value={settings.customColors.background}
-                        onChange={(e) => updateCustomColor('background', e.target.value)}
-                        className="w-8 h-8 rounded cursor-pointer border-none bg-transparent"
-                      />
-                    </div>
-                  </div>
-                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium opacity-80">Yazı Rengi</label>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono opacity-60">{settings.customColors.text}</span>
-                      <input 
-                        type="color" 
-                        value={settings.customColors.text}
-                        onChange={(e) => updateCustomColor('text', e.target.value)}
-                        className="w-8 h-8 rounded cursor-pointer border-none bg-transparent"
-                      />
-                    </div>
-                  </div>
-                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium opacity-80">Ana Renk</label>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono opacity-60">{settings.customColors.primary}</span>
-                      <input 
-                        type="color" 
-                        value={settings.customColors.primary}
-                        onChange={(e) => updateCustomColor('primary', e.target.value)}
-                        className="w-8 h-8 rounded cursor-pointer border-none bg-transparent"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-               {/* Font Seçimi */}
-               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm font-semibold opacity-70">
-                  <span className="text-base font-serif">Aa</span> Yazı Tipi
-                </div>
-                <div className="flex rounded-lg bg-black/5 p-1">
-                  {[
-                    { id: 'sans', name: 'Sans', font: 'font-sans' },
-                    { id: 'serif', name: 'Serif', font: 'font-serif' },
-                    { id: 'mono', name: 'Mono', font: 'font-mono' }
-                  ].map((f) => (
-                    <button
-                      key={f.id}
-                      onClick={() => setSettings({ ...settings, fontFamily: f.id as FontFamily })}
-                      className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${f.font} ${settings.fontFamily === f.id ? 'bg-white shadow text-black' : 'text-current opacity-60 hover:opacity-100'}`}
-                      style={settings.fontFamily === f.id && settings.theme === 'custom' ? { color: settings.customColors.primary } : {}}
-                    >
-                      {f.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Diğer Ayarlar */}
-               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm font-semibold opacity-70">
-                  <EyeIcon className="w-4 h-4" /> Kelime Grubu
-                </div>
-                <div className="flex rounded-lg bg-black/5 p-1">
-                  {[1, 2, 3].map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => setSettings({ ...settings, chunkSize: size as ChunkSize })}
-                      className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${settings.chunkSize === size ? 'bg-white shadow text-black' : 'text-current opacity-60 hover:opacity-100'}`}
-                      style={settings.chunkSize === size && settings.theme === 'custom' ? { color: settings.customColors.primary } : {}}
-                    >
-                      {size}x
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-               <div className="space-y-3">
-                <div className="flex justify-between items-center text-sm font-semibold opacity-70">
-                  <div className="flex items-center gap-2">
-                    <MagnifyingGlassIcon className="w-4 h-4" /> Yazı Boyutu
-                  </div>
-                  <span className="text-xs bg-black/5 px-2 py-0.5 rounded font-mono">{settings.fontSize}px</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="30" 
-                  max="150" 
-                  step="2"
-                  value={settings.fontSize}
-                  onChange={(e) => {
-                    const val = Number(e.target.value);
-                    setSettings({ ...settings, fontSize: val });
-                  }}
-                  className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-black/10"
-                  style={{ accentColor: settings.theme === 'custom' ? settings.customColors.primary : undefined }}
-                />
-              </div>
-
-            </div>
-          </div>
-        </>
-      )}
-
-      <main className="flex-1 max-w-6xl mx-auto px-6 py-8 flex flex-col justify-center gap-8 w-full min-h-[calc(100vh-4rem)]">
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-center gap-8">
         
-        {/* Reader Display */}
-        <div 
-          ref={readerRef}
-          className={`relative rounded-2xl border overflow-hidden transition-all duration-300 flex flex-col justify-between ${readerBgClasses[settings.theme]} ${isFullscreen ? 'p-12' : ''}`}
-          style={getReaderStyle()}
-        >
-          
-          {/* Progress Bar */}
-          <div className="absolute top-0 left-0 h-1.5 w-full bg-black/5 z-10">
-            <div 
-              className={`h-full transition-all duration-300 ease-linear ${settings.theme === 'default' ? 'bg-indigo-600' : settings.theme === 'sepia' ? 'bg-[#5b4636]' : settings.theme === 'dark' ? 'bg-indigo-500' : ''}`}
-              style={{ 
-                width: `${progress}%`,
-                backgroundColor: settings.theme === 'custom' ? settings.customColors.primary : undefined
-              }}
-            ></div>
-          </div>
+        {/* Dynamic Mode Renderer */}
+        {currentMode === 'rsvp' && (
+          <RSVPReader
+            text={text}
+            wpm={wpm}
+            onWpmChange={handleUpdateWpm}
+            settings={settings}
+            onUpdateSettings={handleUpdateSettings}
+            onReadingComplete={handleReadingComplete}
+            onOpenLibrary={() => setIsLibraryOpen(true)}
+          />
+        )}
 
-          {/* Main Text Area */}
-          <div className={`flex-1 flex flex-col items-center justify-center p-8 text-center relative ${isFullscreen ? 'h-screen' : 'h-72 md:h-96'}`}>
+        {currentMode === 'guided' && (
+          <GuidedReader
+            text={text}
+            wpm={wpm}
+            onWpmChange={handleUpdateWpm}
+            settings={settings}
+            onReadingComplete={handleReadingComplete}
+            onOpenLibrary={() => setIsLibraryOpen(true)}
+          />
+        )}
+
+        {currentMode === 'schulte' && (
+          <SchulteTable />
+        )}
+
+        {currentMode === 'eye-training' && (
+          <EyeTraining />
+        )}
+
+        {/* Quick Text Editor Bar (Visible for RSVP & Guided modes) */}
+        {(currentMode === 'rsvp' || currentMode === 'guided') && (
+          <div className="w-full max-w-4xl mx-auto space-y-3 pt-2">
             
-             {/* Geri Sayım Overlay - Şeffaf Glow Tasarım */}
-             {countdown !== null && (
-               <div className="absolute inset-0 flex items-center justify-center z-50 bg-white/60 dark:bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                 <div 
-                    className="flex items-center justify-center animate-pulse"
-                    style={{ 
-                      color: settings.theme === 'custom' ? settings.customColors.primary : settings.theme === 'sepia' ? '#5b4636' : '#4f46e5',
-                      filter: `drop-shadow(0 0 30px ${settings.theme === 'custom' ? settings.customColors.primary : settings.theme === 'sepia' ? '#5b463680' : '#4f46e580'})`
-                    }}
-                 >
-                   <span className="text-[10rem] font-black tracking-tighter leading-none">
-                     {countdown > 0 ? countdown : '!'}
-                   </span>
-                 </div>
-               </div>
-            )}
-
-            {totalChunks > 0 ? (
-              <span 
-                className={`font-bold tracking-tight transition-all duration-75 ${countdown !== null ? 'opacity-0' : 'opacity-100'}`}
-                style={{ fontSize: `${settings.fontSize}px`, lineHeight: 1.2 }}
-              >
-                 {chunks[currentIndex]}
-              </span>
-            ) : (
-              <div className="opacity-40 flex flex-col items-center gap-2">
-                <BookOpenIcon className="w-12 h-12" />
-                <span className="text-xl font-medium">Metin Bekleniyor</span>
-              </div>
-            )}
-          </div>
-
-          {/* Control Bar */}
-          <div 
-            className="border-t p-6 transition-colors z-10"
-            style={{ 
-              backgroundColor: settings.theme === 'custom' ? settings.customColors.text + '05' : 'rgba(0,0,0,0.02)',
-              borderColor: settings.theme === 'custom' ? settings.customColors.text + '10' : 'rgba(0,0,0,0.05)'
-            }}
-          >
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              
-              <div className="flex flex-col gap-3 w-full md:w-auto flex-1 max-w-md">
-                <div className="flex justify-between items-center text-sm font-medium opacity-80">
-                  <span className="flex items-center gap-1.5">
-                    Hız <span className="opacity-60 text-xs">(WPM)</span>
+            {/* Quick action bar */}
+            <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider opacity-70 flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>Aktif Okuma Metni</span>
+                </span>
+                {textTitle && (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                    {textTitle}
                   </span>
-                  <span className="font-mono bg-black/5 px-2 py-0.5 rounded text-xs">
-                    {wpm}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs opacity-50">Yavaş</span>
-                  <input
-                    type="range"
-                    min="100"
-                    max="1000"
-                    step="25"
-                    value={wpm}
-                    onChange={(e) => setWpm(Number(e.target.value))}
-                    className={`flex-1 h-2 rounded-lg appearance-none cursor-pointer ${settings.theme === 'sepia' ? 'accent-[#5b4636] bg-[#e6dbb9]' : settings.theme === 'default' ? 'accent-indigo-600 bg-gray-200' : settings.theme === 'dark' ? 'accent-indigo-500 bg-gray-700' : 'bg-black/10'}`}
-                    style={{ accentColor: settings.theme === 'custom' ? settings.customColors.primary : undefined }}
-                  />
-                  <span className="text-xs opacity-50">Hızlı</span>
-                </div>
+                )}
               </div>
 
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                <button 
-                  onClick={toggleFullscreen}
-                  className="p-3 bg-black/5 hover:bg-black/10 rounded-xl transition-colors"
-                  title={isFullscreen ? "Tam Ekrandan Çık" : "Tam Ekran"}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsLibraryOpen(true)}
+                  className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
                 >
-                  {isFullscreen ? <ArrowsPointingInIcon className="w-6 h-6" /> : <ArrowsPointingOutIcon className="w-6 h-6" />}
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Kütüphaneden Seç</span>
                 </button>
 
-                <button 
-                  onClick={reset}
-                  className="p-3 bg-black/5 hover:bg-red-100 text-slate-700 hover:text-red-600 rounded-xl transition-colors"
-                  title="Bitir ve Başa Dön"
+                <button
+                  onClick={handlePasteClipboard}
+                  className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
                 >
-                  <StopIcon className="w-6 h-6" />
+                  <Clipboard className="w-3.5 h-3.5" />
+                  <span>Yapıştır</span>
                 </button>
-                
-                <button 
-                  onClick={togglePlay}
-                  disabled={totalChunks === 0}
-                  className={`flex-1 md:flex-none px-8 py-3 font-semibold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 min-w-[160px]
-                    ${totalChunks === 0 
-                      ? 'bg-black/10 opacity-50 cursor-not-allowed shadow-none' 
-                      : settings.theme === 'sepia'
-                        ? 'bg-[#5b4636] text-[#f4ecd8] hover:bg-[#4a392c]'
-                        : settings.theme === 'default' 
-                          ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-500/30'
-                          : settings.theme === 'dark'
-                            ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                            : ''
-                    }`}
-                  style={settings.theme === 'custom' && totalChunks > 0 ? { backgroundColor: settings.customColors.primary, color: '#ffffff' } : {}}
-                >
-                  {isPlaying || countdown !== null ? (
-                    <> <PauseIcon className="w-5 h-5" /> Duraklat </>
-                  ) : (
-                    <> Başlat <ArrowRightIcon className="w-5 h-5" /> </>
-                  )}
-                </button>
+
+                {text.length > 0 && (
+                  <button
+                    onClick={() => handleTextChange('', '')}
+                    className="p-1.5 rounded-xl opacity-50 hover:opacity-100 hover:text-red-500 transition-colors"
+                    title="Metni Temizle"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Input Area */}
-        <div className="space-y-4">
-           <div className="flex justify-between items-end px-1">
-            <label htmlFor="content" className="block text-sm font-bold opacity-70">
-              Okuma Metni
-            </label>
-            <div className="flex items-center gap-3">
-              {text.length > 0 && (
-                <div className="flex items-center gap-1.5 text-xs font-medium opacity-60 animate-in fade-in">
-                  <ClockIcon className="w-3.5 h-3.5" />
-                  ~{estimatedTime}
-                </div>
-              )}
-              
-              <div className="h-4 w-px bg-black/10 mx-1"></div>
-
-              <button
-                onClick={loadSampleText}
-                className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg bg-black/5 hover:bg-black/10 transition-colors opacity-70 hover:opacity-100"
-              >
-                <DocumentTextIcon className="w-3.5 h-3.5" />
-                Örnek
-              </button>
-              <button
-                onClick={pasteFromClipboard}
-                className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg bg-black/5 hover:bg-black/10 transition-colors opacity-70 hover:opacity-100"
-              >
-                <ClipboardDocumentIcon className="w-3.5 h-3.5" />
-                Yapıştır
-              </button>
-            </div>
+            {/* Quick Textarea */}
+            <textarea
+              value={text}
+              onChange={(e) => handleTextChange(e.target.value, 'Özel Metin')}
+              placeholder="Buraya okumak istediğiniz metni yapıştırın veya doğrudan yazın..."
+              rows={3}
+              className="w-full p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 outline-none resize-y text-xs sm:text-sm font-sans focus:ring-2 focus:ring-indigo-500 transition-all leading-relaxed"
+            />
           </div>
-          
-          <textarea
-            id="content"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            className={`w-full h-40 p-5 rounded-xl border shadow-sm outline-none resize-none transition-all placeholder:opacity-40 focus:ring-2 
-              ${settings.theme === 'dark' 
-                ? 'bg-gray-800 border-gray-700 text-white focus:ring-indigo-500' 
-                : settings.theme === 'sepia'
-                  ? 'bg-[#fdf6e3] border-[#e6dbb9] text-[#5b4636] focus:ring-[#5b4636]'
-                  : settings.theme === 'default'
-                    ? 'bg-white border-slate-200 text-slate-800 focus:ring-indigo-500'
-                    : ''
-              }`}
-            style={settings.theme === 'custom' ? { 
-              backgroundColor: settings.customColors.background, 
-              color: settings.customColors.text,
-              borderColor: settings.customColors.text + '30',
-              '--tw-ring-color': settings.customColors.primary
-            } as any : {}}
-            placeholder="Buraya metin yapıştırın..."
-          ></textarea>
-        </div>
+        )}
+
       </main>
 
-      <footer className="py-6 text-center text-sm font-medium opacity-40 hover:opacity-100 transition-opacity">
-        <a 
-          href="https://www.instagram.com/resulaykan" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="hover:text-indigo-500 transition-colors"
-          style={settings.theme === 'custom' ? { color: settings.customColors.text } : {}}
-        >
-          @resulaykan
-        </a>
+      {/* Modern Footer */}
+      <footer className="w-full border-t border-black/5 dark:border-white/5 py-6 px-4 text-center text-xs opacity-60 flex flex-col sm:flex-row items-center justify-center gap-3">
+        <div className="flex items-center gap-1.5">
+          <span>Geliştirici:</span>
+          <a
+            href="https://github.com/resulaykan"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold hover:text-indigo-500 transition-colors inline-flex items-center gap-1"
+          >
+            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+            <span>@resulaykan</span>
+          </a>
+        </div>
+        <span className="hidden sm:inline opacity-40">•</span>
+        <div className="flex items-center gap-1">
+          <span>Açık Kaynak Kodlu Hızlı Okuma & Bilişsel Odak Platformu</span>
+        </div>
       </footer>
+
+      {/* --- Global Modals --- */}
+      <LibraryModal
+        isOpen={isLibraryOpen}
+        onClose={() => setIsLibraryOpen(false)}
+        onSelectText={handleTextChange}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        settings={settings}
+        onUpdateSettings={handleUpdateSettings}
+      />
+
+      <StatsModal
+        isOpen={isStatsOpen}
+        onClose={() => setIsStatsOpen(false)}
+        stats={stats}
+        onResetStats={() => {
+          setStats(DEFAULT_STATS);
+          localStorage.removeItem('hizli_okuma_stats_v2');
+        }}
+      />
+
+      <ShortcutsModal
+        isOpen={isShortcutsOpen}
+        onClose={() => setIsShortcutsOpen(false)}
+      />
+
+      {completedSession && (
+        <CompletionModal
+          isOpen={!!completedSession}
+          onClose={() => setCompletedSession(null)}
+          wordsRead={completedSession.wordsRead}
+          secondsRead={completedSession.timeSpentSeconds}
+          wpm={completedSession.averageWpm}
+          textTitle={completedSession.textTitle}
+          onReplay={() => {
+            // Handled
+          }}
+          onOpenLibrary={() => setIsLibraryOpen(true)}
+        />
+      )}
+
     </div>
   );
 }
